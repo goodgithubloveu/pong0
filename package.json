@@ -1,0 +1,57 @@
+{
+  "name": "pong0-js",
+  "version": "1.0.6",
+  "description": "Ping0.cc网站数据获取工具(JavaScript版)",
+  "main": "src/index.js",
+  "bin": {
+    "pong0": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "serve": "node src/index.js --serve",
+    "test": "node src/index.js --all",
+    "build": "node scripts/build.js",
+    "build:win": "node scripts/build.js",
+    "build:linux": "echo '在Windows上无法构建Linux版本'",
+    "build:macos": "echo '在Windows上无法构建macOS版本'"
+  },
+  "keywords": [
+    "ping0",
+    "ip",
+    "netinfo"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.4.0",
+    "cheerio": "^1.0.0-rc.12",
+    "express": "^4.18.2",
+    "he": "^1.2.0",
+    "jsdom": "^22.1.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "pkg": {
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist",
+    "assets": [
+      "public/**/*",
+      "node_modules/axios/**/*",
+      "node_modules/cheerio/**/*",
+      "node_modules/express/**/*",
+      "node_modules/he/**/*",
+      "node_modules/jsdom/**/*",
+      "node_modules/yargs/**/*"
+    ],
+    "scripts": [
+      "src/**/*.js"
+    ]
+  }
+}
