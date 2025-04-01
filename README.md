@@ -108,7 +108,3 @@ npm run build
   - Windows 7/8/10/11
   - Linux (主流发行版)
   - macOS 10.13 或更高版本
-
-## 许可证
-
-MIT License 
