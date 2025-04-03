@@ -101,7 +101,7 @@ async function fetchHomePage(isVerbose = false) {
     
     return { html, x1, difficulty, scriptUrl };
   } catch (error) {
-    console.error(formatDate(new Date()), '获取Ping0.cc首页失败:', error.message);
+    if (isVerbose) console.error(formatDate(new Date()), '获取Ping0.cc首页失败:', error.message);
     throw error;
   }
 }
@@ -129,7 +129,7 @@ async function fetchAndSaveScript(scriptUrl, isVerbose = false) {
     
     return jsContent;
   } catch (error) {
-    console.error(formatDate(new Date()), '获取JavaScript文件失败:', error.message);
+    if (isVerbose) console.error(formatDate(new Date()), '获取JavaScript文件失败:', error.message);
     throw error;
   }
 }
@@ -151,13 +151,17 @@ async function checkAndUpdateRawJs(forceUpdate = false, isVerbose = false) {
     
     // 处理raw.js文件的更新逻辑
     if (forceUpdate) {
-      console.log(formatDate(new Date()), '检测到--raw参数，将强制更新raw.js文件');
-      console.log(formatDate(new Date()), `正在从${scriptUrl}下载raw.js文件...`);
+      if (isVerbose) {
+        console.log(formatDate(new Date()), '检测到--raw参数，将强制更新raw.js文件');
+        console.log(formatDate(new Date()), `正在从${scriptUrl}下载raw.js文件...`);
+      }
       jsContent = await fetchAndSaveScript(scriptUrl, isVerbose);
-      console.log(formatDate(new Date()), 'raw.js文件更新完成');
+      if (isVerbose) console.log(formatDate(new Date()), 'raw.js文件更新完成');
     } else if (!rawJsExists) {
-      if (isVerbose) console.log(formatDate(new Date()), '未检测到raw.js文件，将进行下载');
-      if (isVerbose) console.log(formatDate(new Date()), `正在从${scriptUrl}下载raw.js文件...`);
+      if (isVerbose) {
+        console.log(formatDate(new Date()), '未检测到raw.js文件，将进行下载');
+        console.log(formatDate(new Date()), `正在从${scriptUrl}下载raw.js文件...`);
+      }
       jsContent = await fetchAndSaveScript(scriptUrl, isVerbose);
     } else {
       if (isVerbose) console.log(formatDate(new Date()), '使用本地raw.js文件');
@@ -166,7 +170,7 @@ async function checkAndUpdateRawJs(forceUpdate = false, isVerbose = false) {
     
     return { jsContent, x1, difficulty };
   } catch (error) {
-    console.error(formatDate(new Date()), '检查并更新raw.js失败:', error.message);
+    if (isVerbose) console.error(formatDate(new Date()), '检查并更新raw.js失败:', error.message);
     throw error;
   }
 }

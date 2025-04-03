@@ -11,9 +11,10 @@
     "serve": "node src/index.js --serve",
     "test": "node src/index.js --all",
     "build": "node scripts/build.js",
-    "build:win": "node scripts/build.js",
-    "build:linux": "echo '在Windows上无法构建Linux版本'",
-    "build:macos": "echo '在Windows上无法构建macOS版本'"
+    "build:win": "node scripts/build.js win",
+    "build:linux": "node scripts/build.js linux",
+    "build:macos": "node scripts/build.js macos",
+    "build:all": "node scripts/build.js win linux macos"
   },
   "keywords": [
     "ping0",
@@ -37,21 +38,18 @@
     "node": ">=14.0.0"
   },
   "pkg": {
-    "targets": [
-      "node18-win-x64"
-    ],
-    "outputPath": "dist",
     "assets": [
-      "public/**/*",
-      "node_modules/axios/**/*",
-      "node_modules/cheerio/**/*",
-      "node_modules/express/**/*",
-      "node_modules/he/**/*",
-      "node_modules/jsdom/**/*",
-      "node_modules/yargs/**/*"
+      "src/**/*.js",
+      "node_modules/**/*"
     ],
-    "scripts": [
-      "src/**/*.js"
-    ]
+    "targets": [
+      "node18-win-x64",
+      "node18-linux-x64",
+      "node18-macos-x64",
+      "node18-win-arm64",
+      "node18-linux-arm64",
+      "node18-macos-arm64"
+    ],
+    "outputPath": "dist"
   }
 }

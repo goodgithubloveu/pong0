@@ -114,11 +114,16 @@ function createServer(options = {}) {
       const cookies = await getCookies(x1, difficulty, isVerbose);
       
       if (!cookies.js1key || !cookies.pow) {
-        console.error(formatDate(new Date()), '获取必要的cookie失败');
-        return res.status(500).json({
+        if (isVerbose) console.error(formatDate(new Date()), '获取必要的cookie失败');
+        const errorResponse = {
           error: true,
           message: '获取Cookie失败'
-        });
+        };
+        
+        // 输出JSON到控制台
+        console.log(JSON.stringify(errorResponse, null, 2));
+        
+        return res.status(500).json(errorResponse);
       }
       
       if (isVerbose) {
@@ -140,10 +145,13 @@ function createServer(options = {}) {
         console.log(formatDate(new Date()), '-------------------------------------');
       }
       
+      // 输出查询结果JSON到控制台
+      console.log(JSON.stringify(ipInfo, null, 2));
+      
       // 返回结果
       res.json(ipInfo);
     } catch (error) {
-      console.error(formatDate(new Date()), '执行过程中出错:', error.message);
+      if (isVerbose) console.error(formatDate(new Date()), '执行过程中出错:', error.message);
       
       // 创建错误响应对象
       const errorResponse = {
@@ -154,6 +162,9 @@ function createServer(options = {}) {
       // 使用上游服务返回的状态码，如果没有则使用500
       const httpStatus = error.status || 500;
       errorResponse.status = httpStatus;
+      
+      // 输出错误JSON到控制台
+      console.log(JSON.stringify(errorResponse, null, 2));
       
       res.status(httpStatus).json(errorResponse);
     }
@@ -205,7 +216,7 @@ function createServer(options = {}) {
             console.log(formatDate(new Date()), `- 查询指定IP: GET http://localhost:${port}/query?ip=1.1.1.1`);
             
             if (apiKey) {
-              console.log(formatDate(new Date()), '- API密钥验证已启用，请在请求中添加Authorization头');
+              console.log(formatDate(new Date()), '- API密钥验证已启用，需验证Authorization: Bearer YOUR_API_KEY');
             }
             
             if (isVerbose) {
@@ -221,17 +232,17 @@ function createServer(options = {}) {
             if (err.code === 'EADDRINUSE') {
               console.error(formatDate(new Date()), `错误: 端口 ${port} 已被占用，请尝试其他端口`);
             } else {
-              console.error(formatDate(new Date()), '启动服务器失败:', err.message);
+              console.error(formatDate(new Date()), `启动服务器失败: ${err.message}`);
             }
             reject(err);
           });
         } catch (err) {
-          console.error(formatDate(new Date()), '创建服务器失败:', err.message);
+          console.error(formatDate(new Date()), `创建服务器失败: ${err.message}`);
           reject(err);
         }
       });
     } catch (err) {
-      console.error(formatDate(new Date()), '启动服务器失败:', err.message);
+      console.error(formatDate(new Date()), `启动服务器失败: ${err.message}`);
       throw err;
     }
   }

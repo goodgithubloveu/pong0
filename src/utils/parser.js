@@ -69,13 +69,35 @@ async function queryIpInfo(cookies, ip = '', isVerbose = false) {
         errorObj.message = '访问被拒绝，cookie可能已失效';
       } else if (status === 429) {
         errorObj.message = '请求过于频繁，请稍后再试';
+      } else if (status === 404) {
+        errorObj.message = '查询不到此IP信息，可能是无效IP或地址';
+      } else if (status === 500) {
+        errorObj.message = '网站服务器内部错误，请稍后再试';
+      } else if (status === 502 || status === 503 || status === 504) {
+        errorObj.message = '网站服务暂时不可用，可能正在维护';
       } else {
         errorObj.message = `查询失败，HTTP状态码: ${status}`;
       }
     } else if (error.code === 'ECONNABORTED') {
       errorObj.message = '查询超时，请检查网络连接';
+    } else if (error.code === 'ECONNREFUSED') {
+      errorObj.message = '连接被拒绝，网站可能暂时无法访问';
+    } else if (error.code === 'ETIMEDOUT') {
+      errorObj.message = '网络连接超时，请检查网络状态';
+    } else if (error.code === 'ENETUNREACH') {
+      errorObj.message = '网络不可达，请检查网络连接';
+    } else if (error.message.includes('certificate')) {
+      errorObj.message = 'SSL证书验证失败，可能存在网络问题';
+    } else if (error.message.includes('getaddrinfo')) {
+      errorObj.message = 'DNS解析失败，无法连接到服务器';
     } else {
+      // 如果是从parseHtmlResponse中抛出的自定义错误，直接使用
       errorObj.message = error.message || '未知错误';
+    }
+    
+    // 添加详细诊断信息（仅在内部错误时）
+    if (!error.response && error.code) {
+      errorObj.message += ` (错误代码: ${error.code})`;
     }
     
     // 创建自定义错误对象
@@ -195,7 +217,42 @@ function parseHtmlResponse(html) {
   
   // 如果无法提取到IP，页面可能是错误页面
   if (!result.ip) {
-    throw new Error('无法从页面提取IP信息，可能是错误页面');
+    // 检查页面内容，尝试确定更具体的错误原因
+    const pageText = $('body').text();
+    // 获取页面摘要，最多显示150个字符
+    const pageExcerpt = pageText.length > 150 ? pageText.substring(0, 147) + '...' : pageText;
+    
+    if (html.includes('访问频率过高') || pageText.includes('访问频率过高')) {
+      throw new Error('访问频率过高，请稍后再试');
+    } else if (html.includes('系统发生错误') || pageText.includes('系统发生错误')) {
+      throw new Error('网站系统错误，请稍后再试');
+    } else if (html.includes('无法访问') || pageText.includes('无法访问')) {
+      throw new Error('网站无法访问，可能临时维护中');
+    } else if (html.includes('查询不到此IP') || pageText.includes('查询不到此IP')) {
+      throw new Error('查询不到此IP信息，可能是无效IP或私有IP');
+    } else if (html.includes('访问被拒绝') || pageText.includes('访问被拒绝')) {
+      throw new Error('访问被拒绝，可能是Cookie已失效');
+    } else if (html.includes('robots') || pageText.includes('robots') || pageText.includes('机器人')) {
+      throw new Error('被网站识别为机器人或爬虫，请稍后再试');
+    } else if (pageText.length < 1000) { // 页面内容过少，可能是错误页面
+      throw new Error(`页面内容异常(内容长度: ${pageText.length})，内容: "${pageExcerpt}"`);
+    } else {
+      // 尝试获取更多上下文
+      const title = $('title').text().trim();
+      const h1Text = $('h1').text().trim();
+      const errorText = $('.error, .alert, .message').text().trim();
+      
+      if (errorText) {
+        throw new Error(`网站返回错误信息: "${errorText}"`);
+      } else if (title && title !== 'Ping0.cc') {
+        // 获取页面主体的前150个字符
+        throw new Error(`页面标题异常: "${title}"，页面内容: "${pageExcerpt}"`);
+      } else if (h1Text) {
+        throw new Error(`页面内容异常，H1文本: "${h1Text}"，页面摘要: "${pageExcerpt}"`);
+      } else {
+        throw new Error(`无法从页面提取IP信息，页面内容: "${pageExcerpt}"`);
+      }
+    }
   }
   
   // 设置IP位置

@@ -14,9 +14,13 @@ const getCookies = require('./cookieGetter');
 const { queryIpInfo } = require('./utils/parser');
 const createServer = require('./utils/server');
 
-// 定义版本号和构建日期
-const VERSION = '1.0.0';
-const BUILD_DATE = new Date().toISOString().split('T')[0];
+// 获取版本号和构建日期
+const packageJson = require('../package.json');
+const VERSION = packageJson.version;
+// 如果是占位符，则使用当前日期；否则使用打包时注入的日期
+const BUILD_DATE = '__BUILD_DATE__' === '__BUILD_DATE__' 
+  ? new Date().toISOString().split('T')[0]  // 直接运行时使用当前日期
+  : '__BUILD_DATE__';                       // 打包后使用构建时注入的日期
 
 /**
  * 格式化执行时间
@@ -88,7 +92,20 @@ async function main() {
     .version('v', '显示版本信息', `${VERSION} (构建日期: ${BUILD_DATE})`)
     .help()
     .alias('help', 'h')
+    .strict() // 严格模式，不允许未知参数
+    .fail((msg, err, yargs) => {
+      // 自定义错误处理，更友好地提示未知参数
+      if (err) throw err
+      console.error(`错误: ${msg}`)
+      console.error('运行带 --help 参数获取可用命令和选项列表')
+      process.exit(1)
+    })
     .parse();
+  
+  // 调试: 检查命令行参数解析结果
+  if (argv.all) {
+    console.log('详细模式已开启');
+  }
   
   // API服务器模式
   if (argv.serve) {
@@ -108,13 +125,37 @@ async function main() {
     return;
   }
   
+  // 检查非服务器模式下使用的服务器专用参数
+  if (!argv.serve) {
+    const serverOnlyParams = [];
+    // 直接检查原始命令行参数
+    const rawArgs = process.argv.slice(2);
+    
+    // 检查 -p 或 --port 参数是否存在
+    if (rawArgs.some(arg => arg === '-p' || arg === '--port' || arg.startsWith('--port='))) {
+      serverOnlyParams.push('--port/-p');
+    }
+    
+    // 检查 -k 或 --key 参数是否存在
+    if (rawArgs.some(arg => arg === '-k' || arg === '--key' || arg.startsWith('--key='))) {
+      serverOnlyParams.push('--key/-k');
+    }
+    
+    if (serverOnlyParams.length > 0) {
+      console.error(`错误: 参数 ${serverOnlyParams.join('、')} 只在服务器模式 (--serve) 下有效`);
+      console.error('运行带 --help 参数获取可用命令和选项列表');
+      process.exit(1);
+    }
+  }
+  
   // 查询模式
   if (argv.all) {
     showBanner();
   }
   
-  if (argv.ip && argv.all) {
-    console.log(`查询IP: ${argv.ip}`);
+  // 显示查询IP信息（即使没有指定，也显示即将查询本机IP）
+  if (argv.all) {
+    console.log(`查询IP: ${argv.ip || '本机IP'}`);
   }
   
   // 记录总执行时间
@@ -128,7 +169,9 @@ async function main() {
     if (argv.x1 && argv.difficulty) {
       x1 = argv.x1;
       difficulty = argv.difficulty;
-      console.log(`使用自定义参数: x1=${x1}, difficulty=${difficulty}`);
+      if (argv.all) {
+        console.log(`使用自定义参数: x1=${x1}, difficulty=${difficulty}`);
+      }
     } else {
       // 获取最新的x1和difficulty值
       const result = await checkAndUpdateRawJs(argv.raw || argv.r, argv.all);
@@ -143,6 +186,19 @@ async function main() {
     
     // 如果只使用了raw参数，不执行后续操作
     if (argv.raw && !argv.ip && !argv.serve && !argv.all) {
+      // 给用户明确的反馈
+      console.log(`正在更新raw.js文件...`);
+      try {
+        // 确保这个结果能够被正确返回
+        const updateResult = await checkAndUpdateRawJs(true, true);
+        if (updateResult && updateResult.jsContent) {
+          console.log(`✓ raw.js文件更新成功，文件大小: ${(updateResult.jsContent.length / 1024).toFixed(2)} KB`);
+        } else {
+          console.log(`⚠ raw.js文件可能未完全更新`);
+        }
+      } catch (error) {
+        console.error(`✗ raw.js文件更新失败: ${error.message}`);
+      }
       return;
     }
     
@@ -162,6 +218,7 @@ async function main() {
     
     // 步骤3: 查询IP信息
     const step3StartTime = Date.now();
+    // 即使是默认查询本机IP，也要传递isVerbose参数
     const ipInfo = await queryIpInfo(cookies, argv.ip || '', argv.all);
     
     if (argv.all) {
@@ -188,7 +245,12 @@ async function main() {
       errorResponse.status = error.status;
     }
     
-    console.error('执行过程中出错:', error.message);
+    // 只在详细模式下输出错误信息到控制台
+    if (argv.all) {
+      console.error('执行过程中出错:', error.message);
+    }
+    
+    // 始终以JSON格式输出错误
     console.log(JSON.stringify(errorResponse, null, 2));
     process.exit(1);
   }
@@ -196,6 +258,12 @@ async function main() {
 
 // 执行主函数
 main().catch(error => {
-  console.error('程序运行出错:', error);
+  // 创建错误响应对象
+  const errorResponse = {
+    error: true,
+    message: error.message || '未知错误'
+  };
+  
+  console.log(JSON.stringify(errorResponse, null, 2));
   process.exit(1);
 }); 
