@@ -1,0 +1,122 @@
+name: Build and Package
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - id: get_version
+        name: Get Version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Version: ${VERSION}"
+  
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            targets: linux-x64,linux-arm64
+          - os: windows-latest
+            platform: win
+            targets: win-x64,win-x86
+          - os: macos-latest
+            platform: macos
+            targets: macos-x64,macos-arm64
+    
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install pkg globally
+        run: npm install -g pkg
+      
+      - name: Build for ${{ matrix.platform }}
+        run: |
+          for TARGET in $(echo "${{ matrix.targets }}" | tr ',' ' '); do
+            echo "Building for $TARGET"
+            pkg . --target node18-$TARGET --output dist/pong0-$TARGET
+          done
+        shell: bash
+      
+      - name: Create archives
+        run: |
+          cd dist
+          for BINARY in pong0-*; do
+            if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+              7z a "${BINARY}.zip" "${BINARY}"
+            else
+              tar -czf "${BINARY}.tar.gz" "${BINARY}"
+            fi
+          done
+        shell: bash
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pong0-${{ matrix.platform }}
+          path: |
+            dist/pong0-*
+            !dist/pong0-*.*
+          if-no-files-found: error
+      
+      - name: Upload archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: pong0-${{ matrix.platform }}-archives
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+          if-no-files-found: error
+
+  release:
+    needs: [version, build]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Prepare release files
+        run: |
+          mkdir release
+          find artifacts -type f -name "*.zip" -o -name "*.tar.gz" | xargs -I{} cp {} release/
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: pong0-js v${{ needs.version.outputs.version }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: release/*
+          token: ${{ secrets.GITHUB_TOKEN }}
