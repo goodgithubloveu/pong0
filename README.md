@@ -26,6 +26,7 @@
 
 - `ip`：要查询的IP地址（可选，不提供则查询访问者IP）
 - `raw`：是否强制更新raw.js（可选，true/false）
+- `clientip`: 是否使用客户端IP进行查询（可选，true/false），此参数优先级低于参数ip
 
 示例：
 ```
@@ -37,7 +38,8 @@ http://localhost:8080/query?ip=1.1.1.1
 ```json
 {
   "ip": "1.1.1.1",
-  "raw": false
+  "raw": false,
+  "clientip": true
 }
 ```
 
