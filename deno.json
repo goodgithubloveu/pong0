@@ -1,0 +1,41 @@
+{
+  "name": "pong0-deno",
+  "version": "1.0.7",
+  "exports": "./src/index.ts",
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "start": "deno run --allow-net --allow-read --allow-write --allow-env --allow-sys --import-map=import_map.json src/index.ts",
+    "serve": "deno run --allow-net --allow-read --allow-write --allow-env --allow-sys --import-map=import_map.json src/index.ts --serve",
+    "test": "deno run --allow-net --allow-read --allow-write --allow-env --allow-sys --import-map=import_map.json src/index.ts --all",
+    "dev": "deno run --watch --allow-net --allow-read --allow-write --allow-env --allow-sys --import-map=import_map.json src/index.ts",
+    "cache": "deno cache --reload --import-map=import_map.json src/**/*.ts",
+    "build": "deno run -A build.ts"
+  },
+  "imports": {
+    "cheerio": "npm:cheerio@^1.0.0-rc.12",
+    "jsdom": "npm:jsdom@^22.1.0",
+    "oak": "https://deno.land/x/oak@v12.5.0/mod.ts",
+    "std/": "https://deno.land/std@0.218.0/"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window", "deno.ns", "dom"],
+    "strict": false,
+    "noImplicitAny": false
+  },
+  "lint": {
+    "files": {
+      "include": ["src/"]
+    }
+  },
+  "fmt": {
+    "options": {
+      "indentWidth": 2,
+      "lineWidth": 100,
+      "singleQuote": true
+    },
+    "files": {
+      "exclude": ["raw.js", "node_modules"],
+      "include": ["src/"]
+    }
+  }
+} 
