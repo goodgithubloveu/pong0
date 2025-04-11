@@ -4,6 +4,8 @@
  * 主程序入口文件
  */
 import { parse } from "std/flags/mod.ts";
+// 删除不需要的导入
+// import { dirname, fromFileUrl, join } from "std/path/mod.ts";
 
 // 导入项目模块
 import { checkAndUpdateRawJs } from "./utils/fetcher.ts";
@@ -12,8 +14,10 @@ import { queryIpInfo } from "./utils/parser.ts";
 import { createServer } from "./utils/server.ts";
 import { formatTime } from "./utils/common.ts";
 
-// 获取版本号
-const VERSION = "1.0.8";
+// 从deno.json导入版本号 - 在编译时会被替换为实际值
+// @ts-ignore: 引用的是项目根目录的deno.json文件
+import denoConfig from "../deno.json" with { type: "json" };
+const VERSION = denoConfig.version;
 
 /**
  * 显示Banner

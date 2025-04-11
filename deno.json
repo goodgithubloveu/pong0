@@ -1,6 +1,6 @@
 {
   "name": "pong0-deno",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "exports": "./src/index.ts",
   "nodeModulesDir": "auto",
   "tasks": {

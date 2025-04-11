@@ -6,12 +6,14 @@
 // 添加空导出使文件成为模块
 export {};
 
+// 从deno.json导入版本号
+// @ts-ignore: 引用的是项目根目录的deno.json文件
+import denoConfig from "./deno.json" with { type: "json" };
+const version = denoConfig.version;
+
 // 获取命令行参数
 const args = Deno.args;
 const target = args[0] || "all"; // 默认构建所有平台
-
-// 版本号
-const version = "1.0.7";
 
 // 目标平台 - 只包含Deno实际支持的平台
 const targets = {
